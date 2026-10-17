@@ -14,7 +14,7 @@
 
 ## 🖥️ 網頁系統即時預覽 (Live Web App Preview)
 
-> **🚀 線上體驗網址 (GitHub Pages)**: `https://<您的GitHub帳號>.github.io/AIoTHW2/`  
+> **🚀 線上體驗網址 (GitHub Pages)**: [https://kelly0713.github.io/AIoTHW2/](https://kelly0713.github.io/AIoTHW2/)  
 > **💻 本機伺服器啟動**: 執行 `python app.py` ➔ 開啟 `http://127.0.0.1:5000`
 
 ![HydroPredict AI 網頁系統即時預覽](static/images/web_preview.png)
