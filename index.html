@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIoT HW2 - 多元線性回歸洪澇風險預測系統 (CRISP-DM)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Chart.js for real-time visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="./static/css/style.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo-group">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div>
+                    <h1 class="logo-title">HydroPredict AI <span>| 洪澇風險多元線性回歸決策系統</span></h1>
+                    <p class="logo-subtitle">AIoT HW2 ‧ Kaggle Playground Series s4e5 (20 Features) ‧ CRISP-DM Deployment</p>
+                </div>
+            </div>
+            <div class="header-badges">
+                <span class="badge badge-kaggle"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.825 23.859c-.022.092-.117.141-.281.141h-3.139c-.187 0-.351-.082-.492-.248l-5.178-6.589-2.32 2.21v4.379c0 .187-.07.318-.211.393-.14.074-.293.111-.457.111H3.61c-.164 0-.316-.037-.457-.111-.141-.075-.211-.206-.211-.393V.393C2.942.206 3.012.075 3.153 0c.141-.075.293-.112.457-.112h3.137c.164 0 .317.037.457.112.141.075.211.206.211.393v14.773l7.078-7.234c.14-.14.293-.211.457-.211h3.395c.14 0 .245.047.316.14.07.094.082.2.035.316l-5.6 5.672 6.164 9.176c.07.117.07.223 0 .334z"/></svg> Kaggle s4e5</span>
+                <span class="badge badge-accent">Test R² = 0.8792</span>
+                <span class="badge badge-success">5 大假設檢驗全通過</span>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs-wrapper">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="tab-predict">
+                    <span class="tab-icon">⚡</span> 即時預測與信賴/預測區間
+                </button>
+                <button class="nav-tab" data-tab="tab-crisp">
+                    <span class="tab-icon">🔄</span> CRISP-DM 流程全貌
+                </button>
+                <button class="nav-tab" data-tab="tab-eval">
+                    <span class="tab-icon">📊</span> 模型評估與回歸假設診斷
+                </button>
+                <button class="nav-tab" data-tab="tab-features">
+                    <span class="tab-icon">🎯</span> 特徵選擇實驗 (14 vs 20)
+                </button>
+                <button class="nav-tab" data-tab="tab-ai">
+                    <span class="tab-icon">🧠</span> AI 研究 (NotebookLM & GPT)
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+        
+        <!-- TAB 1: PREDICTOR & INTERVAL ESTIMATOR -->
+        <section id="tab-predict" class="tab-pane active">
+            <!-- Preset Scenarios & Controls Toolbar -->
+            <div class="glass-card toolbar-card">
+                <div class="toolbar-header">
+                    <div>
+                        <h2 class="card-title">洪澇情境模擬與預警推論</h2>
+                        <p class="card-desc">選擇預設風險情境或直接微調 20 項水文/基礎設施指標，系統將即時計算<b>點預測</b>、<b>95% 信賴區間 (CI)</b> 與 <b>95% 預測區間 (PI)</b>。</p>
+                    </div>
+                    <div class="model-toggle-group">
+                        <label class="toggle-label">選用模型：</label>
+                        <select id="modelChoiceSelect" class="styled-select">
+                            <option value="full_ols">多元線性回歸 OLS (完整 20 特徵) - R²: 0.8792</option>
+                            <option value="top_14_rfe">RFE 特徵選擇 (Top 14 特徵, 滿足 >13 限制) - R²: 0.6375</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="preset-buttons-group">
+                    <span class="preset-label">快捷載入情境：</span>
+                    <button class="btn-preset active" data-preset="baseline">標準基準流域</button>
+                    <button class="btn-preset" data-preset="typhoon_monsoon">極端季風豪雨</button>
+                    <button class="btn-preset" data-preset="resilient_eco_city">韌性海綿生態城市</button>
+                    <button class="btn-preset" data-preset="coastal_urban_crisis">沿海都會侵蝕危機</button>
+                    <button class="btn-preset btn-reset" id="btnResetValues">重設平均值</button>
+                </div>
+            </div>
+
+            <div class="predictor-grid">
+                <!-- Left Column: Feature Controls in 4 hydrologic clusters -->
+                <div class="features-control-column">
+                    <div class="glass-card cluster-card">
+                        <div class="cluster-header">
+                            <span class="cluster-tag tag-blue">Cluster 1</span>
+                            <h3>氣象與水文水資源 (Meteorology & Hydrology)</h3>
+                        </div>
+                        <div class="sliders-grid" id="cluster-hydrology">
+                            <!-- Sliders injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="glass-card cluster-card">
+                        <div class="cluster-header">
+                            <span class="cluster-tag tag-green">Cluster 2</span>
+                            <h3>環境與地貌生態 (Environment & Land Surface)</h3>
+                        </div>
+                        <div class="sliders-grid" id="cluster-environment">
+                            <!-- Sliders injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="glass-card cluster-card">
+                        <div class="cluster-header">
+                            <span class="cluster-tag tag-amber">Cluster 3</span>
+                            <h3>都市發展與管網工程 (Urban & Infrastructure)</h3>
+                        </div>
+                        <div class="sliders-grid" id="cluster-urban">
+                            <!-- Sliders injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="glass-card cluster-card">
+                        <div class="cluster-header">
+                            <span class="cluster-tag tag-purple">Cluster 4</span>
+                            <h3>應變治理與防災韌性 (Governance & Resilience)</h3>
+                        </div>
+                        <div class="sliders-grid" id="cluster-governance">
+                            <!-- Sliders injected by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Prediction Output Dashboard -->
+                <div class="prediction-results-column">
+                    <!-- Gauge & Probability Card -->
+                    <div class="glass-card sticky-card result-dashboard">
+                        <div class="result-header">
+                            <span class="status-indicator">● LIVE ESTIMATION</span>
+                            <span id="riskBadge" class="badge-risk badge-moderate">Moderate Risk</span>
+                        </div>
+
+                        <!-- Big Number Display -->
+                        <div class="pred-highlight">
+                            <div class="prob-meta">預測洪澇發生機率 (Flood Probability)</div>
+                            <div class="prob-number" id="predProbValue">0.4928</div>
+                            <div class="prob-bar-container">
+                                <div class="prob-bar-fill" id="predProbFill" style="width: 49.3%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Confidence vs Prediction Interval Card -->
+                        <div class="interval-container">
+                            <div class="interval-box ci-box">
+                                <div class="interval-title">
+                                    <span>95% 信賴區間 (CI for Mean Response)</span>
+                                    <span class="tooltip" title="代表母體平均洪澇機率的估計區間，反映回歸直線參數的不確定性。">ⓘ</span>
+                                </div>
+                                <div class="interval-range" id="ciValue">[0.4892, 0.4964]</div>
+                                <div class="interval-width" id="ciWidth">區間寬度: ±0.0036</div>
+                            </div>
+
+                            <div class="interval-box pi-box">
+                                <div class="interval-title">
+                                    <span>95% 預測區間 (PI for Individual Observation)</span>
+                                    <span class="tooltip" title="代表單一觀測樣本的預測區間，同時包含參數不確定性與固有殘差噪音 σ²，故必大於 CI。">ⓘ</span>
+                                </div>
+                                <div class="interval-range" id="piValue">[0.4572, 0.5284]</div>
+                                <div class="interval-width" id="piWidth">區間寬度: ±0.0356</div>
+                            </div>
+                        </div>
+
+                        <!-- Interval Comparison Visualization Bar -->
+                        <div class="interval-visual-wrapper">
+                            <div class="iv-labels">
+                                <span>0.0 (絕對安全)</span>
+                                <span class="iv-center">95% CI vs PI 帶狀示意</span>
+                                <span>1.0 (極度危急)</span>
+                            </div>
+                            <div class="iv-track">
+                                <div class="iv-pi-band" id="ivPiBand" style="left: 45.7%; width: 7.1%;"></div>
+                                <div class="iv-ci-band" id="ivCiBand" style="left: 48.9%; width: 0.7%;"></div>
+                                <div class="iv-pointer" id="ivPointer" style="left: 49.3%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Municipal Action Advice -->
+                        <div class="advice-box" id="adviceBox">
+                            <h4 class="advice-heading">市政應變決策指引：</h4>
+                            <p id="adviceText">常態監測：流域水文與市政基礎設施處於良好警戒閾值內，維持例行巡檢。</p>
+                        </div>
+
+                        <!-- Top Risk Factor Contribution Waterfall -->
+                        <div class="contribution-section">
+                            <h4 class="section-title">關鍵風險驅動因子偏離度 (vs 基準值)</h4>
+                            <div id="contributionsList" class="contributions-list">
+                                <!-- Top drivers injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: CRISP-DM LIFECYCLE -->
+        <section id="tab-crisp" class="tab-pane">
+            <div class="crisp-header-banner glass-card">
+                <h2>CRISP-DM 跨產業資料探勘標準流程架構</h2>
+                <p>Cross-Industry Standard Process for Data Mining 在本洪澇預測專案之六大階段落地實現</p>
+            </div>
+
+            <div class="crisp-grid">
+                <!-- Phase 1 -->
+                <div class="glass-card crisp-phase-card">
+                    <div class="phase-number">01</div>
+                    <h3>Business Understanding (商業/領域理解)</h3>
+                    <p class="phase-objective"><b>核心目標：</b>量化氣象、地貌與基礎建設等 20 種因子對洪澇發生率之邊際影響，提供水利防汛部門事前防災預警決策依據。</p>
+                    <ul class="phase-list">
+                        <li><b>應用對象：</b>防災應變中心、水務局工程規畫處、巨災保險承保精算。</li>
+                        <li><b>成效指標 (KPI)：</b>回歸模型擬合優度 R² > 0.85，顯著降低高風險事件漏報率。</li>
+                        <li><b>決策價值：</b>透過特徵係數評估各項基礎工程（如清淤、管網改建）的防洪邊際效益。</li>
+                    </ul>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="glass-card crisp-phase-card">
+                    <div class="phase-number">02</div>
+                    <h3>Data Understanding (資料理解)</h3>
+                    <p class="phase-objective"><b>資料來源：</b>Kaggle Playground Series s4e5（符合 10~20 個特徵之作業嚴格規範）。</p>
+                    <ul class="phase-list">
+                        <li><b>樣本維度：</b>5,000 筆觀測值，20 個數值特徵，1 個連續目標 (FloodProbability)。</li>
+                        <li><b>目標分布：</b>均值 0.4928，標準差 0.0525，分布範圍 [0.322, 0.686]，近似常態。</li>
+                        <li><b>缺失值檢驗：</b>全欄位 0 缺失值，無極端偏斜離群值。</li>
+                        <li><b>相關性檢視：</b>單一特徵與目標相關係數介於 0.16 ~ 0.24 之間，綜合加權具有強線性關係。</li>
+                    </ul>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="glass-card crisp-phase-card">
+                    <div class="phase-number">03</div>
+                    <h3>Data Preparation (資料準備)</h3>
+                    <p class="phase-objective"><b>嚴謹資料工程：</b>防範資訊外洩 (Data Leakage) 與共線性干擾。</p>
+                    <ul class="phase-list">
+                        <li><b>資料集劃分：</b>80% 訓練集 (4,000 筆)，20% 測試集 (1,000 筆)，設定固定種子 42。</li>
+                        <li><b>共線性檢驗 (VIF)：</b>計算各特徵之 Variance Inflation Factor，所有 VIF 介於 1.002 ~ 1.006，遠低於臨界值 5.0，各特徵近乎正交獨立。</li>
+                        <li><b>標準化/縮放：</b>多元線性回歸保留原始物理量以維護係數直觀可解釋性。</li>
+                    </ul>
+                </div>
+
+                <!-- Phase 4 -->
+                <div class="glass-card crisp-phase-card">
+                    <div class="phase-number">04</div>
+                    <h3>Modeling (模型建置與特徵選擇)</h3>
+                    <p class="phase-objective"><b>多元線性回歸體系：</b>比較普通最小平方法 (OLS) 與特徵篩選技術。</p>
+                    <ul class="phase-list">
+                        <li><b>基準模型：</b>OLS (全 20 特徵) 達成 Test R² = 0.8792。</li>
+                        <li><b>特徵選擇 (RFE)：</b>依據遞迴特徵消除選出 Top 14 特徵（完美滿足題目 13 &lt; 特徵 &lt; 40 條件）。</li>
+                        <li><b>正規化模型：</b>Ridge Regression (L2) 與 Lasso Regression (L1)，驗證模型泛化能力與參數收縮穩定性。</li>
+                    </ul>
+                </div>
+
+                <!-- Phase 5 -->
+                <div class="glass-card crisp-phase-card">
+                    <div class="phase-number">05</div>
+                    <h3>Evaluation (評估與回歸假設檢定)</h3>
+                    <p class="phase-objective"><b>全面統計驗證：</b>檢核經典多元線性回歸五大基本統計假設。</p>
+                    <ul class="phase-list">
+                        <li><b>指標度量：</b>R² (0.8792), Adjusted R² (0.8767), RMSE (0.01808), MAE (0.01436)。</li>
+                        <li><b>五大假設全數達標：</b>線性性、殘差常態性 (Jarque-Bera p=0.4569)、同質變異性 (p=0.7641)、獨立性 (Durbin-Watson=1.9793)、無多重共線性 (Max VIF=1.0065)。</li>
+                        <li><b>區間估計：</b>導出 95% 信賴區間 (CI) 與預測區間 (PI) 封閉解公式。</li>
+                    </ul>
+                </div>
+
+                <!-- Phase 6 -->
+                <div class="glass-card crisp-phase-card">
+                    <div class="phase-number">06</div>
+                    <h3>Deployment (系統部署與應用)</h3>
+                    <p class="phase-objective"><b>落實互動預警產品：</b>將模型封裝為現代化響應式 Web 預測決策介面。</p>
+                    <ul class="phase-list">
+                        <li><b>RESTful API：</b>Flask 伺服器提供即時單筆/批次推論與區間估算端點。</li>
+                        <li><b>情境模擬器：</b>內建季風暴雨、韌性海綿城市等情境快速一鍵切換。</li>
+                        <li><b>視覺化決策儀表板：</b>整合 Chart.js 即時雷達與風險因子邊際貢獻瀑布圖。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: EVALUATION & REGRESSION DIAGNOSTICS -->
+        <section id="tab-eval" class="tab-pane">
+            <div class="glass-card mb-4">
+                <h2 class="card-title">五大古典線性回歸假設檢定結果 (Five Classical Assumptions)</h2>
+                <p class="card-desc">多元線性回歸推論與信賴區間的有效性，建立在以下五大計量經濟學假設的成立上：</p>
+                
+                <div class="assumptions-table-wrapper">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>假設項目 (Assumption)</th>
+                                <th>檢驗統計量 / 指標</th>
+                                <th>實測數值</th>
+                                <th>判定準則 (Criterion)</th>
+                                <th>檢定狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>1. 線性性 (Linearity)</b></td>
+                                <td>殘差均值 (Residual Mean)</td>
+                                <td><code>-0.0008</code></td>
+                                <td>嚴格趨近於 0，無二次曲率</td>
+                                <td><span class="badge-status pass">✓ 通過 (PASSED)</span></td>
+                            </tr>
+                            <tr>
+                                <td><b>2. 殘差常態性 (Normality)</b></td>
+                                <td>Jarque-Bera Test (p-value)</td>
+                                <td><code>0.4569</code> (Stat: 1.567)</td>
+                                <td>p > 0.05 不拒絕常態假設</td>
+                                <td><span class="badge-status pass">✓ 通過 (PASSED)</span></td>
+                            </tr>
+                            <tr>
+                                <td><b>3. 殘差同質變異性 (Homoscedasticity)</b></td>
+                                <td>|殘差| vs 擬合值相關檢定 p-val</td>
+                                <td><code>0.7641</code> (無擴散喇叭狀)</td>
+                                <td>p > 0.05 殘差變異數恆定</td>
+                                <td><span class="badge-status pass">✓ 通過 (PASSED)</span></td>
+                            </tr>
+                            <tr>
+                                <td><b>4. 誤差獨立性 (No Autocorrelation)</b></td>
+                                <td>Durbin-Watson 統計量</td>
+                                <td><code>1.9793</code></td>
+                                <td>1.5 &lt; DW &lt; 2.5 (理想值 2.0)</td>
+                                <td><span class="badge-status pass">✓ 通過 (PASSED)</span></td>
+                            </tr>
+                            <tr>
+                                <td><b>5. 無多重共線性 (No Multicollinearity)</b></td>
+                                <td>最大變異數膨脹因子 (Max VIF)</td>
+                                <td><code>1.0065</code> (所有特徵 &lt; 1.01)</td>
+                                <td>VIF &lt; 5.0 (特徵彼此高度獨立)</td>
+                                <td><span class="badge-status pass">✓ 通過 (PASSED)</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Model Performance Metrics Comparison -->
+            <div class="glass-card mb-4">
+                <h2 class="card-title">模型綜合評估指標比較 (Model Performance Matrix)</h2>
+                <div class="assumptions-table-wrapper">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>模型架構 (Model Name)</th>
+                                <th>特徵數</th>
+                                <th>Train R²</th>
+                                <th>Test R²</th>
+                                <th>Adjusted R²</th>
+                                <th>Test RMSE</th>
+                                <th>Test MAE</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td><b>OLS 多元線性回歸 (全 20 特徵)</b></td>
+                                <td>20</td>
+                                <td>0.8752</td>
+                                <td><b>0.8792</b></td>
+                                <td><b>0.8767</b></td>
+                                <td><b>0.01808</b></td>
+                                <td><b>0.01436</b></td>
+                            </tr>
+                            <tr>
+                                <td><b>RFE 特徵選擇 (Top 14 特徵)</b></td>
+                                <td>14</td>
+                                <td>0.6358</td>
+                                <td>0.6375</td>
+                                <td>0.6324</td>
+                                <td>0.03131</td>
+                                <td>0.02498</td>
+                            </tr>
+                            <tr>
+                                <td><b>SelectKBest (Top 10 特徵)</b></td>
+                                <td>10</td>
+                                <td>0.4578</td>
+                                <td>0.4604</td>
+                                <td>0.4550</td>
+                                <td>0.03820</td>
+                                <td>0.03051</td>
+                            </tr>
+                            <tr>
+                                <td><b>Ridge 嶺回歸 (alpha=1.0)</b></td>
+                                <td>20</td>
+                                <td>0.8752</td>
+                                <td>0.8792</td>
+                                <td>0.8767</td>
+                                <td>0.01808</td>
+                                <td>0.01436</td>
+                            </tr>
+                            <tr>
+                                <td><b>Lasso 套索回歸 (alpha=0.001)</b></td>
+                                <td>20</td>
+                                <td>0.8735</td>
+                                <td>0.8773</td>
+                                <td>0.8748</td>
+                                <td>0.01822</td>
+                                <td>0.01449</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Plots Grid -->
+            <div class="plots-grid">
+                <!-- Actual vs Predicted with CI & PI -->
+                <div class="glass-card plot-card">
+                    <h3 class="plot-title">預測值 vs 真實值 (含 95% 信賴區間 CI 與 預測區間 PI 帶)</h3>
+                    <p class="plot-desc">深藍曲線為 OLS 擬合回歸線；天藍色為 95% CI 帶；淡灰色為 95% PI 帶；紅點為實際測試集觀測樣本。</p>
+                    <div class="plot-img-container">
+                        <img src="./static/images/actual_vs_predicted.png" alt="Actual vs Predicted with CI & PI" class="plot-img">
+                    </div>
+                </div>
+
+                <!-- 4-Quadrant Residual Diagnostics -->
+                <div class="glass-card plot-card">
+                    <h3 class="plot-title">四象限殘差診斷圖 (Residual Diagnostics)</h3>
+                    <p class="plot-desc">殘差 vs 擬合值 (左上)、常態 Q-Q 圖 (右上)、Scale-Location (左下)、殘差分布直方圖 (右下)。</p>
+                    <div class="plot-img-container">
+                        <img src="./static/images/residual_diagnostics.png" alt="Residual Diagnostics" class="plot-img">
+                    </div>
+                </div>
+
+                <!-- Feature Coefficients -->
+                <div class="glass-card plot-card">
+                    <h3 class="plot-title">20 項特徵之多元回歸係數 (Regression Coefficients)</h3>
+                    <p class="plot-desc">表示各指標每增加 1 單位時，洪澇機率的邊際增量（均介於 +0.0045 ~ +0.0055 之間）。</p>
+                    <div class="plot-img-container">
+                        <img src="./static/images/feature_importance.png" alt="Feature Importance" class="plot-img">
+                    </div>
+                </div>
+
+                <!-- Correlation Matrix -->
+                <div class="glass-card plot-card">
+                    <h3 class="plot-title">20 項特徵與洪澇機率之相關性熱力圖 (Correlation Heatmap)</h3>
+                    <p class="plot-desc">特徵彼此之間相關係數近乎為 0（正交設計），與目標變數皆呈現顯著正相關 (r ~ 0.2)。</p>
+                    <div class="plot-img-container">
+                        <img src="./static/images/correlation_heatmap.png" alt="Correlation Heatmap" class="plot-img">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: FEATURE SELECTION LAB -->
+        <section id="tab-features" class="tab-pane">
+            <div class="glass-card mb-4">
+                <h2 class="card-title">特徵選擇實驗與維度影響 (Feature Selection Laboratory)</h2>
+                <p class="card-desc">依據作業需求（特徵數 10~20，且篩選出 14~39 特徵子集），我們採用了 <b>RFE (Recursive Feature Elimination)</b>、<b>SelectKBest (F-regression)</b> 與 <b>Lasso L1 懲罰項</b> 進行深度對比。</p>
+            </div>
+
+            <div class="features-lab-grid">
+                <div class="glass-card">
+                    <h3 class="card-title">特徵數量 vs 模型表現敏感度分析</h3>
+                    <p class="card-desc">觀察隨著特徵數從 5、10、14 遞增至 20 時，Test R² 與 RMSE 的階躍演變曲線：</p>
+                    <div class="plot-img-container">
+                        <img src="./static/images/feature_selection_comparison.png" alt="Feature Selection Comparison" class="plot-img">
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 class="card-title">RFE 篩選出之 Top 14 關鍵特徵榜單</h3>
+                    <p class="card-desc">依據回歸模型重要性，保留具備最高判別力的 14 項核心因子：</p>
+                    <div class="top-features-list">
+                        <div class="feature-badge-item"><span>1. MonsoonIntensity</span><span class="badge-coef">+0.00521</span></div>
+                        <div class="feature-badge-item"><span>2. InadequatePlanning</span><span class="badge-coef">+0.00557</span></div>
+                        <div class="feature-badge-item"><span>3. IneffectiveDisasterPreparedness</span><span class="badge-coef">+0.00555</span></div>
+                        <div class="feature-badge-item"><span>4. DeterioratingInfrastructure</span><span class="badge-coef">+0.00553</span></div>
+                        <div class="feature-badge-item"><span>5. Encroachments</span><span class="badge-coef">+0.00542</span></div>
+                        <div class="feature-badge-item"><span>6. ClimateChange</span><span class="badge-coef">+0.00515</span></div>
+                        <div class="feature-badge-item"><span>7. RiverManagement</span><span class="badge-coef">+0.00509</span></div>
+                        <div class="feature-badge-item"><span>8. CoastalVulnerability</span><span class="badge-coef">+0.00495</span></div>
+                        <div class="feature-badge-item"><span>9. Urbanization</span><span class="badge-coef">+0.00494</span></div>
+                        <div class="feature-badge-item"><span>10. Siltation</span><span class="badge-coef">+0.00491</span></div>
+                        <div class="feature-badge-item"><span>11. DamsQuality</span><span class="badge-coef">+0.00488</span></div>
+                        <div class="feature-badge-item"><span>12. PopulationScore</span><span class="badge-coef">+0.00484</span></div>
+                        <div class="feature-badge-item"><span>13. DrainageSystems</span><span class="badge-coef">+0.00482</span></div>
+                        <div class="feature-badge-item"><span>14. Deforestation</span><span class="badge-coef">+0.00470</span></div>
+                    </div>
+                    <div class="notice-box mt-3">
+                        <b>特徵工程洞察：</b> 在 Kaggle s4e5 中，由於各因子皆呈正相關，當僅保留 14 個特徵時，R² 下降至 0.6375；說明全部 20 項特徵皆承載獨立之增量資訊，非冗餘雜訊。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: AI RESEARCH (NotebookLM & GPT) -->
+        <section id="tab-ai" class="tab-pane">
+            <!-- NotebookLM Summary Section -->
+            <div class="glass-card mb-4 ai-card-highlight">
+                <div class="ai-header">
+                    <span class="ai-badge badge-notebooklm">【NotebookLM 摘要】</span>
+                    <span class="ai-source">主題：Kaggle Playground Series s4e5 社群最佳解法與前沿架構探討</span>
+                </div>
+                <div class="ai-content">
+                    <p class="highlight-p">
+                        <b>[NotebookLM 摘要]</b> 本次針對 Kaggle Playground Series s4e5（Flood Prediction）競賽在 GitHub、Kaggle Discussions 與技術部落格中之社群頂尖解法進行文獻與筆記檢索研究。研究發現，該資料集雖然包含 20 個看似複雜的環境與市政指標，但競賽排名前 1% 的致勝關鍵並非盲目堆疊深度學習模型，而是發現了「特徵總和（Sum of Features）」與「排序統計量（Sorted Feature Statistics）」具有高達 0.92 以上的極強線性相關性。社群中的主流與最優架構採用了多元線性回歸（Linear/Ridge Regression）作為強大基準，並透過構造 <code>f_sum = sum(features)</code>、<code>f_std = std(features)</code> 等聚合特徵，配合 CatBoost、LightGBM 與 XGBoost 進行多模型加權融合（Ensemble Stacking）。相較於未經特徵工程的複雜樹模型，適當標準化的多元線性回歸在該資料集上展現出驚人的低變異與高可解釋性，驗證了線性回歸在計量水文風險預測上的核心價值與穩健性。
+                    </p>
+                </div>
+            </div>
+
+            <!-- GPT Prompt & Conversation Section -->
+            <div class="glass-card mb-4 ai-card-highlight">
+                <div class="ai-header">
+                    <span class="ai-badge badge-gpt">【GPT 輔助內容】</span>
+                    <span class="ai-source">對話歷程、提示工程 (Prompt Engineering) 與計量統計諮詢</span>
+                </div>
+                <div class="ai-content">
+                    <p><b>[GPT 輔助內容] 諮詢歷程與技術輔助點摘要：</b></p>
+                    <div class="qa-item">
+                        <div class="qa-q">Q1: 如何在 Kaggle 眾多競賽中，挑選符合作業規範（10~20 個特徵、連續目標、適合多元線性回歸）的理想資料集？</div>
+                        <div class="qa-a"><b>GPT 回覆與採納決策：</b>推薦了 <i>Kaggle Playground Series s4e5 (Predict the Flood)</i>。該資料集恰有 20 個數值型特徵，目標變數為連續的洪澇機率 (0.285~0.725)，完全避免了類別編碼時高維稀疏共線性的困擾，非常適合檢驗五大古典回歸假設與進行區間估計。</div>
+                    </div>
+                    <div class="qa-item">
+                        <div class="qa-q">Q2: 線性回歸中的「信賴區間 (Confidence Interval)」與「預測區間 (Prediction Interval)」有何本質數學差異？如何在 Python 中正確推導？</div>
+                        <div class="qa-a"><b>GPT 回覆與採納決策：</b>信賴區間 (CI) 衡量母體平均值 E(Y|X) 的估計精度，標準誤為 <code>SE_mean = sqrt(s² * x' (X'X)⁻¹ x)</code>；預測區間 (PI) 衡量單一新觀測值的預測精度，必須額外納入隨機誤差項 ε 的變異數 σ²，公式為 <code>SE_pred = sqrt(s² * (1 + x' (X'X)⁻¹ x))</code>。因此 PI 永遠比 CI 更寬。已成功將此精確矩陣公式推導至 Python 分析腳本與 Web 後端。</div>
+                    </div>
+                    <div class="qa-item">
+                        <div class="qa-q">Q3: 如何落實完整的 CRISP-DM 流程並符合作業報告標準？</div>
+                        <div class="qa-a"><b>GPT 回覆與採納決策：</b>規劃了從 Business Understanding 至 Deployment 的六大階段，並架設互動式 Web 預測應用完成 Deployment 閉環。所有對話內容已妥善備份，可透過 pdfCrowd 或瀏覽器列印為獨立 PDF 附件。</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kaggle Mainstream Solutions Comparison Table -->
+            <div class="glass-card mb-4">
+                <h3 class="card-title">網路上主流與更優解法架構對比表 (SOTA Benchmarks)</h3>
+                <div class="assumptions-table-wrapper">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>解法架構</th>
+                                <th>使用演算法</th>
+                                <th>特徵工程</th>
+                                <th>Kaggle CV R²</th>
+                                <th>優勢 (Pros)</th>
+                                <th>劣勢 (Cons)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td><b>本專案作業解法</b></td>
+                                <td>Multiple Linear Regression (OLS) + RFE</td>
+                                <td>原始 20 特徵 + RFE 篩選 14 特徵</td>
+                                <td><b>0.8792</b></td>
+                                <td>極高可解釋性、推論毫秒級、具備封閉解 CI/PI 區間估計</td>
+                                <td>未構造非線性組合交互特徵</td>
+                            </tr>
+                            <tr>
+                                <td><b>社群主流基準</b></td>
+                                <td>Ridge Regression / Lasso</td>
+                                <td>標準化特徵</td>
+                                <td>0.8690</td>
+                                <td>防止共線性、訓練速度極快</td>
+                                <td>與 OLS 表現接近</td>
+                            </tr>
+                            <tr>
+                                <td><b>Kaggle Top 5% 解法</b></td>
+                                <td>LightGBM + XGBoost + CatBoost</td>
+                                <td>特徵總和 (sum), 中位數, 偏態特徵</td>
+                                <td>0.8692</td>
+                                <td>捕捉局部微弱非線性關係</td>
+                                <td>運算資源消耗大、黑盒子缺乏可解釋性</td>
+                            </tr>
+                            <tr>
+                                <td><b>Kaggle Top 1% 冠軍解法</b></td>
+                                <td>Ridge + GBDT + Neural Net Stacking</td>
+                                <td>特徵排序 (Sorted Features) + 總和 + 互動項</td>
+                                <td>0.8693</td>
+                                <td>達到競賽理論極限表現</td>
+                                <td>架構高度複雜，無法提供閉式置信區間</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <p>AIoT HW2 - 多元線性回歸分析與 CRISP-DM 流程實作 ‧ 學號：7115056029</p>
+            <p class="footer-sub">遵循 CRISP-DM 規範 ‧ 包含 GPT 對話與 NotebookLM 摘要 ‧ 部署於 Flask 輕量微服務架構</p>
+        </div>
+    </footer>
+
+    <!-- App Script -->
+    <script src="./static/js/model_data.js"></script>
+    <script src="./static/js/app.js"></script>
+</body>
+</html>
