@@ -46,12 +46,12 @@
                     <select id="problemSelector" class="styled-select problem-select">
                         <option value="flood_prediction">🌊 Flood Prediction (Kaggle s4e5) — 20 Features</option>
                         <option value="startups_profit">💰 50 Startups Profit Prediction — 4 Features</option>
-                        <option value="custom_url">📥 自訂 CSV Dataset URL...</option>
+                        <option value="custom_url">📥 自訂資料集與自訂預測 (Custom Data & Prediction)</option>
                     </select>
                 </div>
                 <div class="switcher-bonus-tags">
                     <span class="bonus-tag">⭐ 加分 +1: 下拉切換問題</span>
-                    <span class="bonus-tag bonus-tag-gold">⭐⭐ 加分 +2: 自訂 URL 載入</span>
+                    <span class="bonus-tag bonus-tag-gold">⭐⭐ 加分 +2: 自訂資料載入與預測</span>
                 </div>
             </div>
         </div>
@@ -75,7 +75,7 @@
                     <span class="tab-icon">🧠</span> AI 研究 (NotebookLM & GPT)
                 </button>
                 <button class="nav-tab" data-tab="tab-custom">
-                    <span class="tab-icon">📥</span> 自訂資料集分析
+                    <span class="tab-icon">📥</span> 自訂資料預測與分析
                 </button>
             </div>
         </nav>
@@ -1217,52 +1217,73 @@
             </div>
 </section>
 
-        <!-- ★ TAB 6: CUSTOM DATASET ANALYSIS (BONUS) ★ -->
+        <!-- ★ TAB 6: CUSTOM DATASET PREDICTION & ANALYSIS (BONUS) ★ -->
         <section id="tab-custom" class="tab-pane">
             <div class="glass-card mb-4 custom-hero-card">
                 <div class="custom-hero-header">
                     <div>
-                        <h2 class="card-title">📥 自訂資料集多元線性回歸分析引擎</h2>
+                        <h2 class="card-title">📥 自訂資料集多元線性回歸預測與視覺化專區</h2>
                         <p class="card-desc">
-                            載入任意 CSV 資料集 URL，系統將自動執行：欄位偵測 → 類別編碼 → 特徵選擇 → OLS 擬合 → 
-                            R²/RMSE/MAE 評估 → 95% CI & PI 區間估計 → 互動式圖表視覺化。
-                            <br><strong>完全在瀏覽器端運算，無需後端伺服器。</strong>
+                            獨立專屬的自訂資料回歸引擎：可<b>載入任意 CSV 資料集</b>（支援 URL、本機檔案上傳、貼上文字或快速範例），
+                            進行 OLS 矩陣擬合，並提供<b>填入自訂資料即時預測功能</b>（含 95% CI/PI 區間計算與特徵邊際貢獻），
+                            並將分析圖表<b>直接產出於網頁上</b>供即時預覽與下載。
+                            <br><strong>⚡ 完全於瀏覽器端純前端運算，兼具 100% 離線穩定性與高效能。</strong>
                         </p>
                     </div>
                     <div class="bonus-badge-group">
-                        <span class="bonus-mega-badge">⭐⭐ 加分 +2</span>
+                        <span class="bonus-mega-badge">⭐⭐ 加分 +2: 自訂資料預測</span>
                     </div>
                 </div>
 
                 <!-- Quick-load shortcuts for the tab -->
                 <div class="quick-load-bar" id="customTabQuickLoad">
-                    <span class="preset-label">快速載入範例資料集：</span>
-                    <button class="btn-preset" onclick="quickLoadDataset('https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv', 'Profit')">
-                        💰 50 Startups
+                    <span class="preset-label">⚡ 快速載入範例資料集：</span>
+                    <button class="btn-preset active" onclick="quickLoadDataset('https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv', 'Profit')">
+                        💰 50 Startups (Profit)
                     </button>
                     <button class="btn-preset" onclick="quickLoadDataset('https://raw.githubusercontent.com/dsrscientist/Dataset1/master/insurance.csv', 'charges')">
-                        🏥 Insurance Charges
+                        🏥 Medical Insurance (Charges)
                     </button>
                     <button class="btn-preset" onclick="quickLoadDataset('https://raw.githubusercontent.com/dsrscientist/Dataset1/master/winequality-red.csv', 'quality')">
-                        🍷 Wine Quality
+                        🍷 Wine Quality (Quality)
+                    </button>
+                    <button class="btn-preset" onclick="quickLoadDataset('flood_prediction_sample', 'FloodProbability')">
+                        🌊 Kaggle Flood Risk (20 Features)
                     </button>
                 </div>
 
-                <!-- Custom URL input (duplicated here for convenience in this tab) -->
+                <!-- Multi-source Loader Panel -->
                 <div class="custom-url-inline-panel">
-                    <div class="url-input-row">
+                    <div class="url-input-row" style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
                         <input type="text" id="customDatasetUrlInline" class="url-input"
                                placeholder="貼上 CSV URL，例如 https://raw.githubusercontent.com/..."
-                               value="">
-                        <select id="targetColumnSelectInline" class="styled-select target-select-inline">
+                               value="" style="flex: 1; min-width: 240px;">
+                        <select id="targetColumnSelectInline" class="styled-select target-select-inline" style="min-width: 160px;">
                             <option value="">目標欄位 (自動偵測)</option>
                         </select>
                         <button id="btnLoadDatasetInline" class="btn-load-dataset" onclick="loadFromInlineInput()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            載入 & 分析
+                            載入 URL
                         </button>
+
+                        <!-- Local File Upload Button -->
+                        <label for="customCsvFileInput" class="btn-preset" style="cursor: pointer; margin: 0; display: inline-flex; align-items: center; gap: 0.4rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            上傳本機 CSV
+                        </label>
+                        <input type="file" id="customCsvFileInput" accept=".csv" style="display: none;">
                     </div>
-                    <div class="load-progress-wrapper">
+
+                    <!-- Collapsible Paste CSV Option -->
+                    <details class="paste-csv-details mt-2" style="background: rgba(15, 23, 42, 0.4); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <summary class="paste-csv-summary" style="cursor: pointer; color: var(--accent-blue); font-size: 0.85rem; font-weight: 600;">📝 或直接在此貼上自訂 CSV 文字資料...</summary>
+                        <div class="paste-csv-content mt-2">
+                            <textarea id="customCsvTextarea" class="styled-textarea" rows="4" style="width: 100%; background: rgba(15, 23, 42, 0.8); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 0.6rem; font-family: monospace; font-size: 0.82rem;" placeholder="在此貼上含標頭之 CSV 文字，例如：&#10;Feature1,Feature2,Target&#10;10.5,20.1,55.4&#10;12.2,18.9,58.2"></textarea>
+                            <button class="btn-preset mt-2" onclick="loadFromPastedText()">🚀 解析並訓練貼上的 CSV</button>
+                        </div>
+                    </details>
+
+                    <div class="load-progress-wrapper mt-2">
                         <div class="load-progress-track">
                             <div class="load-progress-bar" id="loadProgressBarInline" style="width: 0%;"></div>
                         </div>
@@ -1271,14 +1292,14 @@
                 </div>
             </div>
 
-            <!-- Dynamic Results Container -->
+            <!-- Dynamic Results Container (Populated by custom_dataset.js) -->
             <div id="customResultsContainer">
                 <div class="glass-card empty-state-card">
                     <div class="empty-state">
                         <div class="empty-icon">📊</div>
-                        <h3>尚未載入自訂資料集</h3>
-                        <p>使用上方的問題選擇器、快速載入按鈕，或輸入任意 CSV URL 開始分析。</p>
-                        <p class="empty-hint">支援格式：標準 CSV（含表頭），可從 GitHub Raw、Kaggle、Google Drive 等來源載入。</p>
+                        <h3>自訂資料集分析與預測引擎已就緒</h3>
+                        <p>點選上方快速範例（50 Startups、醫療保險、紅酒、洪澇）、貼上 CSV URL 或上傳檔案。</p>
+                        <p class="empty-hint">載入後可於專屬介面【填入自訂特徵數值進行即時預測】，並【直接在網站產出高解析度視覺化圖檔】！</p>
                     </div>
                 </div>
             </div>

@@ -107,19 +107,25 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Tab Switching
-function initTabs() {
+function switchTab(tabId) {
     const tabBtns = document.querySelectorAll('.nav-tab');
     const tabPanes = document.querySelectorAll('.tab-pane');
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanes.forEach(p => p.classList.remove('active'));
 
+    const activeBtn = document.querySelector(`.nav-tab[data-tab="${tabId}"]`);
+    const activePane = document.getElementById(tabId);
+    if (activeBtn) activeBtn.classList.add('active');
+    if (activePane) activePane.classList.add('active');
+}
+window.switchTab = switchTab;
+
+function initTabs() {
+    const tabBtns = document.querySelectorAll('.nav-tab');
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabPanes.forEach(p => p.classList.remove('active'));
-
-            btn.classList.add('active');
             const targetId = btn.getAttribute('data-tab');
-            const targetPane = document.getElementById(targetId);
-            if (targetPane) targetPane.classList.add('active');
+            switchTab(targetId);
         });
     });
 }
@@ -527,6 +533,7 @@ function applyProblemTheme(problemKey) {
         if (badgeR2) badgeR2.textContent = 'Test R² = 0.8792';
         if (logoTitle) logoTitle.innerHTML = 'HydroPredict AI <span>| 洪澇風險多元線性回歸決策系統</span>';
         if (logoSubtitle) logoSubtitle.textContent = 'AIoT HW2 ‧ Kaggle Playground Series s4e5 (20 Features) ‧ CRISP-DM Deployment';
+        switchTab('tab-predict');
         debouncedPredict();
     } else if (problemKey === 'startups_profit') {
         floodElements.forEach(el => el.style.display = 'none');
@@ -535,10 +542,14 @@ function applyProblemTheme(problemKey) {
         if (badgeR2) badgeR2.textContent = 'Test R² = 0.9508';
         if (logoTitle) logoTitle.innerHTML = 'StartupValuate AI <span>| 50 新創公司利潤多元線性回歸分析系統</span>';
         if (logoSubtitle) logoSubtitle.textContent = 'AIoT HW2 ‧ 50 Startups Dataset (R&D, Admin, Marketing, State) ‧ CRISP-DM Deployment';
+        switchTab('tab-predict');
         updateStartupsPrediction();
     } else if (problemKey === 'custom_url') {
         switchTab('tab-custom');
-        if (badgeProblem) badgeProblem.textContent = '📥 自訂 CSV 資料集';
+        if (badgeProblem) badgeProblem.textContent = '📥 自訂資料預測與分析';
+        if (typeof window.ensureCustomDatasetInitialized === 'function') {
+            window.ensureCustomDatasetInitialized();
+        }
     }
 }
 
