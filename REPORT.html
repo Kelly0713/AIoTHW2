@@ -276,5 +276,31 @@
             </tr>
         </tbody>
     </table>
+
+    <div class="page-break"></div>
+
+    <h2>六、加分項目實作說明 (Bonus Features: +3 分滿分達成)</h2>
+    <div class="card" style="border-left: 4px solid #10b981; margin-bottom: 20px;">
+        <h3 style="color: #10b981; margin-top: 0;">⭐ 【加總分 1 分】下拉視窗呈現兩種 Problem</h3>
+        <p>在系統導覽列頂部建置了高科技下拉式 Problem Switcher（<code>#problemSelector</code>），支援在不同業務領域之多元線性回歸問題間無縫切換：</p>
+        <ul>
+            <li><b>問題一：🌊 Flood Prediction (Kaggle s4e5)</b>：20 個數值特徵（嚴格符合題目 13 &lt; Features &lt; 40 規範），目標變數為連續機率 <code>FloodProbability</code>。</li>
+            <li><b>問題二：💰 50 Startups Profit Prediction</b>：經典多元回歸資料集，以 4 個研發、管理、行銷與地域特徵預測新創公司淨利 <code>Profit</code>。</li>
+            <li><b>問題三：📥 自訂 CSV Dataset URL...</b>：展開 URL 輸入面板，可隨意輸入任意公開 CSV 進行即時建模。</li>
+        </ul>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+        <h3 style="color: #f59e0b; margin-top: 0;">⭐⭐ 【加總分 2 分】可任意輸入 Dataset CSV URL</h3>
+        <p>在 Web 系統頂部與「自訂資料集分析」分頁中建置了通用型多元線性回歸線上運算引擎：</p>
+        <ol>
+            <li><b>支援任意 CSV 網址</b>：可貼上如 <code>https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv</code> 或任意 Raw CSV 連結。</li>
+            <li><b>自動資料解析與欄位識別</b>：使用 PapaParse 自動解析欄位型別，過濾非數值欄位，並支援類別欄位自動虛擬變數編碼 (One-Hot Encoding)。</li>
+            <li><b>動態特徵與目標選擇</b>：提供 Target Column 下拉選單，可自由指定任意連續欄位作為預測目標。</li>
+            <li><b>全套統計指標計算</b>：自動分割 80% 訓練集與 20% 測試集，即時計算 Train R²、Test R²、Adjusted R²、RMSE、MAE。</li>
+            <li><b>95% CI 與 PI 區間圖表與殘差診斷</b>：使用 Chart.js 動態繪製真實值 vs 預測值擬合線、天藍色 95% 信賴區間 (CI) 帶、淡灰色 95% 預測區間 (PI) 帶、殘差散佈圖、特徵係數圖與殘差常態分布直方圖。</li>
+            <li><b>回歸方程式與係數表</b>：即時輸出可直接複製之代數回歸方程式與特徵影響力排序表。</li>
+        </ol>
+    </div>
 </body>
 </html>

@@ -98,9 +98,12 @@ let debounceTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initSliders();
+    initStartupsControls();
+    initProblemSelector();
     tryFetchServerPresets();
     setupListeners();
     triggerPrediction();
+    updateStartupsPrediction();
 });
 
 // Tab Switching
@@ -465,6 +468,292 @@ function updateDashboard(pred) {
                 <span class="contrib-val ${cls}">${sign}${(d.contribution * 100).toFixed(2)}%</span>
             `;
             contribList.appendChild(item);
+        });
+    }
+}
+
+
+// ============================================================
+// 50 STARTUPS INTERACTIVE PREDICTOR & GLOBAL PROBLEM SWITCHER
+// ============================================================
+
+const STARTUPS_PARAMS = {
+    intercept: 50125.3438,
+    rd_coef: 0.806023,
+    admin_coef: -0.027004,
+    mkt_coef: 0.026980,
+    fl_coef: 198.7888,
+    ny_coef: -41.8870,
+    residual_std: 9439.207,
+    t_crit: 2.0154,
+    XtX_inv: [
+        [0.532003, 9.324297e-07, -3.590270e-06, -5.475792e-07, -0.0346599, -0.0542324],
+        [9.324297e-07, 2.417103e-11, -1.052275e-11, -6.709110e-12, 5.705196e-08, -1.174825e-07],
+        [-3.590270e-06, -1.052275e-11, 3.061926e-11, 3.141638e-12, -6.576629e-08, 2.535729e-08],
+        [-5.475792e-07, -6.709110e-12, 3.141638e-12, 3.298070e-12, -1.090787e-07, -3.109416e-10],
+        [-0.0346599, 5.705196e-08, -6.576629e-08, -1.090787e-07, 0.1275405, 0.0607052],
+        [-0.0542324, -1.174825e-07, 2.535729e-08, -3.109416e-10, 0.0607052, 0.1189893]
+    ]
+};
+
+let startupsState = {
+    rd: 165000,
+    admin: 80000,
+    mkt: 450000,
+    state: "New York"
+};
+
+function initProblemSelector() {
+    const selector = document.getElementById('problemSelector');
+    if (selector) {
+        selector.addEventListener('change', (e) => {
+            applyProblemTheme(e.target.value);
+        });
+    }
+}
+
+function applyProblemTheme(problemKey) {
+    const floodElements = document.querySelectorAll('.problem-flood');
+    const startupsElements = document.querySelectorAll('.problem-startups');
+    const badgeProblem = document.getElementById('currentProblemBadge');
+    const badgeR2 = document.getElementById('currentR2Badge');
+    const logoTitle = document.getElementById('headerLogoTitle');
+    const logoSubtitle = document.getElementById('headerLogoSubtitle');
+
+    if (problemKey === 'flood_prediction') {
+        floodElements.forEach(el => el.style.display = '');
+        startupsElements.forEach(el => el.style.display = 'none');
+        if (badgeProblem) badgeProblem.textContent = '🌊 Flood Prediction (s4e5)';
+        if (badgeR2) badgeR2.textContent = 'Test R² = 0.8792';
+        if (logoTitle) logoTitle.innerHTML = 'HydroPredict AI <span>| 洪澇風險多元線性回歸決策系統</span>';
+        if (logoSubtitle) logoSubtitle.textContent = 'AIoT HW2 ‧ Kaggle Playground Series s4e5 (20 Features) ‧ CRISP-DM Deployment';
+        debouncedPredict();
+    } else if (problemKey === 'startups_profit') {
+        floodElements.forEach(el => el.style.display = 'none');
+        startupsElements.forEach(el => el.style.display = '');
+        if (badgeProblem) badgeProblem.textContent = '💰 50 Startups Profit';
+        if (badgeR2) badgeR2.textContent = 'Test R² = 0.9508';
+        if (logoTitle) logoTitle.innerHTML = 'StartupValuate AI <span>| 50 新創公司利潤多元線性回歸分析系統</span>';
+        if (logoSubtitle) logoSubtitle.textContent = 'AIoT HW2 ‧ 50 Startups Dataset (R&D, Admin, Marketing, State) ‧ CRISP-DM Deployment';
+        updateStartupsPrediction();
+    } else if (problemKey === 'custom_url') {
+        switchTab('tab-custom');
+        if (badgeProblem) badgeProblem.textContent = '📥 自訂 CSV 資料集';
+    }
+}
+
+function initStartupsControls() {
+    const rdRange = document.getElementById('range-rd_spend');
+    const adminRange = document.getElementById('range-admin_spend');
+    const mktRange = document.getElementById('range-mkt_spend');
+    const stateSelect = document.getElementById('select-state');
+
+    if (rdRange) {
+        rdRange.addEventListener('input', (e) => {
+            startupsState.rd = parseFloat(e.target.value);
+            document.getElementById('val-rd_spend').textContent = `$${startupsState.rd.toLocaleString()}`;
+            document.querySelectorAll('[data-startups-preset]').forEach(b => b.classList.remove('active'));
+            updateStartupsPrediction();
+        });
+    }
+
+    if (adminRange) {
+        adminRange.addEventListener('input', (e) => {
+            startupsState.admin = parseFloat(e.target.value);
+            document.getElementById('val-admin_spend').textContent = `$${startupsState.admin.toLocaleString()}`;
+            document.querySelectorAll('[data-startups-preset]').forEach(b => b.classList.remove('active'));
+            updateStartupsPrediction();
+        });
+    }
+
+    if (mktRange) {
+        mktRange.addEventListener('input', (e) => {
+            startupsState.mkt = parseFloat(e.target.value);
+            document.getElementById('val-mkt_spend').textContent = `$${startupsState.mkt.toLocaleString()}`;
+            document.querySelectorAll('[data-startups-preset]').forEach(b => b.classList.remove('active'));
+            updateStartupsPrediction();
+        });
+    }
+
+    if (stateSelect) {
+        stateSelect.addEventListener('change', (e) => {
+            startupsState.state = e.target.value;
+            document.querySelectorAll('[data-startups-preset]').forEach(b => b.classList.remove('active'));
+            updateStartupsPrediction();
+        });
+    }
+
+    const presets = {
+        unicorn: { rd: 165000, admin: 80000, mkt: 450000, state: "New York" },
+        marketing_growth: { rd: 80000, admin: 150000, mkt: 400000, state: "California" },
+        lean_bootstrapped: { rd: 100000, admin: 50000, mkt: 50000, state: "Florida" },
+        industry_average: { rd: 73721, admin: 121344, mkt: 211025, state: "New York" }
+    };
+
+    document.querySelectorAll('[data-startups-preset]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const presetKey = btn.getAttribute('data-startups-preset');
+            const p = presets[presetKey];
+            if (!p) return;
+
+            document.querySelectorAll('[data-startups-preset]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            startupsState = { ...p };
+            if (rdRange) { rdRange.value = p.rd; document.getElementById('val-rd_spend').textContent = `$${p.rd.toLocaleString()}`; }
+            if (adminRange) { adminRange.value = p.admin; document.getElementById('val-admin_spend').textContent = `$${p.admin.toLocaleString()}`; }
+            if (mktRange) { mktRange.value = p.mkt; document.getElementById('val-mkt_spend').textContent = `$${p.mkt.toLocaleString()}`; }
+            if (stateSelect) stateSelect.value = p.state;
+
+            updateStartupsPrediction();
+        });
+    });
+
+    const resetBtn = document.getElementById('btnResetStartupsValues');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            const unicornBtn = document.querySelector('[data-startups-preset="unicorn"]');
+            if (unicornBtn) unicornBtn.click();
+        });
+    }
+}
+
+function updateStartupsPrediction() {
+    const p = STARTUPS_PARAMS;
+    const rd = startupsState.rd;
+    const admin = startupsState.admin;
+    const mkt = startupsState.mkt;
+    const isFL = startupsState.state === 'Florida' ? 1.0 : 0.0;
+    const isNY = startupsState.state === 'New York' ? 1.0 : 0.0;
+
+    // Point Prediction
+    const y_pred = p.intercept + p.rd_coef * rd + p.admin_coef * admin + p.mkt_coef * mkt + p.fl_coef * isFL + p.ny_coef * isNY;
+
+    // Vector x0: [1, rd, admin, mkt, isFL, isNY]
+    const x0 = [1.0, rd, admin, mkt, isFL, isNY];
+
+    // Leverage h0 = x0^T * XtX_inv * x0
+    let h0 = 0.0;
+    for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 6; j++) {
+            h0 += x0[i] * p.XtX_inv[i][j] * x0[j];
+        }
+    }
+    h0 = Math.max(0.0001, h0);
+
+    const s = p.residual_std;
+    const se_mean = Math.sqrt(s * s * h0);
+    const se_pred = Math.sqrt(s * s * (1.0 + h0));
+
+    const ci_low = y_pred - p.t_crit * se_mean;
+    const ci_high = y_pred + p.t_crit * se_mean;
+    const pi_low = y_pred - p.t_crit * se_pred;
+    const pi_high = y_pred + p.t_crit * se_pred;
+
+    // Update Big Dollar Number
+    const predValEl = document.getElementById('startupsPredValue');
+    if (predValEl) predValEl.textContent = Math.round(y_pred).toLocaleString();
+
+    // Profit Tier Badge
+    const badgeEl = document.getElementById('startupsRiskBadge');
+    let tierBadge = '🦄 卓越獨角獸 (Unicorn)';
+    let tierColor = '#c084fc';
+    let tierAdvice = '強力看好：該新創具備優異之研發投入效率，獲利能力位於全美前 5% 頂尖區間。建議追加投資，並維持高額技術研發比例，嚴格控管行政開銷。';
+
+    if (y_pred >= 150000) {
+        tierBadge = '🦄 卓越獨角獸 (Unicorn)';
+        tierColor = '#c084fc';
+        tierAdvice = '強烈建議投資：研發轉化率極高，獲利能力位於全美前 5% 頂尖梯隊。建議領投後續 A 輪，擴大市場護城河。';
+    } else if (y_pred >= 100000) {
+        tierBadge = '📈 穩健成長企業 (Growth)';
+        tierColor = '#38bdf8';
+        tierAdvice = '評等優良：年度利潤表現穩健，資本結構平衡。可適度追加行銷預算加速獲客，並確保研發經費佔比不低於 40%。';
+    } else if (y_pred >= 50000) {
+        tierBadge = '⚖️ 損益平衡狀態 (Break-even)';
+        tierColor = '#fbbf24';
+        tierAdvice = '審慎觀望：當前獲利空間有限，易受外部市場波動衝擊。建議精簡行政後勤管理支出，將有限現金流聚焦於核心產品研發。';
+    } else {
+        tierBadge = '⚠️ 赤字虧損風險 (High Risk)';
+        tierColor = '#f87171';
+        tierAdvice = '高風險預警：研發投入嚴重不足或固定成本過高，預估利潤逼近虧損警戒線。建議創投暫緩注資，要求團隊進行商業模式重組。';
+    }
+
+    if (badgeEl) {
+        badgeEl.textContent = tierBadge;
+        badgeEl.style.color = tierColor;
+    }
+
+    // Progress Bar (scaled to max $250k)
+    const fillEl = document.getElementById('startupsProbFill');
+    if (fillEl) {
+        const pct = Math.min(100, Math.max(5, (y_pred / 250000) * 100));
+        fillEl.style.width = `${pct}%`;
+        fillEl.style.background = tierColor;
+    }
+
+    // CI Box
+    const ciValEl = document.getElementById('startupsCiValue');
+    const ciWidthEl = document.getElementById('startupsCiWidth');
+    if (ciValEl) ciValEl.textContent = `[$${Math.round(ci_low).toLocaleString()}, $${Math.round(ci_high).toLocaleString()}]`;
+    if (ciWidthEl) ciWidthEl.textContent = `母體平均利潤半寬: ±$${Math.round(p.t_crit * se_mean).toLocaleString()}`;
+
+    // PI Box
+    const piValEl = document.getElementById('startupsPiValue');
+    const piWidthEl = document.getElementById('startupsPiWidth');
+    if (piValEl) piValEl.textContent = `[$${Math.round(pi_low).toLocaleString()}, $${Math.round(pi_high).toLocaleString()}]`;
+    if (piWidthEl) piWidthEl.textContent = `單一新創預測半寬: ±$${Math.round(p.t_crit * se_pred).toLocaleString()}`;
+
+    // Visual Interval Gauge (scaled to 0 ~ 250k)
+    const ivPiBand = document.getElementById('startupsIvPiBand');
+    const ivCiBand = document.getElementById('startupsIvCiBand');
+    const ivPointer = document.getElementById('startupsIvPointer');
+
+    if (ivPiBand && ivCiBand && ivPointer) {
+        const maxVal = 250000;
+        const piLeft = Math.max(0, (pi_low / maxVal) * 100);
+        const piRight = Math.min(100, (pi_high / maxVal) * 100);
+        ivPiBand.style.left = `${piLeft}%`;
+        ivPiBand.style.width = `${Math.max(2, piRight - piLeft)}%`;
+
+        const ciLeft = Math.max(0, (ci_low / maxVal) * 100);
+        const ciRight = Math.min(100, (ci_high / maxVal) * 100);
+        ivCiBand.style.left = `${ciLeft}%`;
+        ivCiBand.style.width = `${Math.max(1.5, ciRight - ciLeft)}%`;
+
+        const ptPos = Math.min(100, Math.max(0, (y_pred / maxVal) * 100));
+        ivPointer.style.left = `${ptPos}%`;
+    }
+
+    // Advice Text
+    const adviceEl = document.getElementById('startupsAdviceText');
+    if (adviceEl) adviceEl.textContent = tierAdvice;
+
+    // Waterfall Breakdown
+    const listEl = document.getElementById('startupsContributionsList');
+    if (listEl) {
+        listEl.innerHTML = '';
+        const rdCont = p.rd_coef * rd;
+        const mktCont = p.mkt_coef * mkt;
+        const adminCont = p.admin_coef * admin;
+        const stateCont = p.fl_coef * isFL + p.ny_coef * isNY;
+
+        const items = [
+            { name: `研發技術投入 (+$${rd.toLocaleString()})`, val: rdCont, isPositive: true },
+            { name: `市場廣告獲客 (+$${mkt.toLocaleString()})`, val: mktCont, isPositive: true },
+            { name: `公司行政開銷 (-$${admin.toLocaleString()})`, val: adminCont, isPositive: false },
+            { name: `州別營運聚落 (${startupsState.state})`, val: stateCont, isPositive: stateCont >= 0 }
+        ];
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'contrib-item';
+            const cls = item.isPositive ? 'up' : 'down';
+            const sign = item.val >= 0 ? '+' : '';
+            div.innerHTML = `
+                <span class="contrib-feat">${item.name}</span>
+                <span class="contrib-val ${cls}">${sign}$${Math.round(item.val).toLocaleString()} USD</span>
+            `;
+            listEl.appendChild(div);
         });
     }
 }

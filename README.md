@@ -30,6 +30,8 @@
 
 | 作業要求 | 本專案實作成果 | 狀態 |
 | :--- | :--- | :---: |
+| **⭐ 加總分 1 分 (Bonus +1)** | **下拉式選單切換兩種 Problem**：<br>1. 🌊 Kaggle Flood Prediction (20 Features, 13 < Features < 40)<br>2. 💰 50 Startups Profit Prediction (4 Features) | **🏆 完成 (+1分)** |
+| **⭐⭐ 加總分 2 分 (Bonus +2)** | **可任意輸入 Dataset CSV URL**：<br>支援線上任意輸入 CSV 網址 (如 `50_Startups.csv`)，即時解析、自動 OLS 回歸擬合、評估指標、95% CI/PI 圖表與方程式 | **🏆 完成 (+2分)** |
 | **資料來源** | [Kaggle Playground Series s4e5 (Flood Prediction)](https://www.kaggle.com/competitions/playground-series-s4e5) | **完成** |
 | **特徵數量限制** | **剛好 20 個數值特徵**（嚴格滿足 10~20 特徵限制，亦符 14~39 範圍） | **完成** |
 | **多元線性回歸模型** | OLS, Ridge ($\alpha=1.0$), Lasso ($\alpha=0.001$) | **完成** |

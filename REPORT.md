@@ -154,4 +154,33 @@ Kaggle 社群的最佳解法雖然透過特徵工程與模型融合將分數推�
    ```bash
    python app.py
    ```
-   以瀏覽器造訪 `http://127.0.0.1:5000` 即可體驗完整互動功能。
+   以瀏覽器造訪 `http://127.0.0.1:5000` 或開啟 `index.html` 即可體驗完整互動功能。
+
+---
+
+## 六、加分項目實作說明 (Bonus Features: +3 分滿分達成)
+
+### 1. 【加總分 1 分】下拉視窗呈現兩種 Problem
+- **實作設計**：
+  在系統導覽列頂部建置了高科技下拉式 Problem Switcher（`#problemSelector`），支援在不同業務領域之多元線性回歸問題間無縫切換：
+  1. **問題一：🌊 Flood Prediction (Kaggle s4e5)**
+     - 領域：極端氣候防汛與水文脆弱度評估
+     - 特徵數：**20 個數值特徵**（嚴格符合題目 $13 < \text{Features} < 40$ 規範）
+     - 目標變數：`FloodProbability` (連續機率變數)
+  2. **問題二：💰 50 Startups Profit Prediction**
+     - 領域：新創公司投資組合與營收利潤預測
+     - 特徵數：4 個特徵 (`R&D Spend`, `Administration`, `Marketing Spend`, `State`)
+     - 目標變數：`Profit` (連續金錢變數)
+  3. **問題三：📥 自訂 CSV Dataset URL...**
+     - 點選後即刻展開 URL 輸入面板，可隨意輸入任意公開 CSV 進行即時建模。
+
+### 2. 【加總分 2 分】可任意輸入 Dataset CSV URL
+- **實作設計**：
+  在 Web 系統頂部與「自訂資料集分析」分頁中建置了通用型多元線性回歸線上運算引擎：
+  1. **支援任意 CSV 網址**：可貼上如 `https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv`、紅酒品質資料集或醫療保險費用資料集之 Raw CSV 連結。
+  2. **自動資料解析與欄位識別**：利用 PapaParse 自動解析欄位型別，過濾非數值欄位，並支援類別欄位自動虛擬變數編碼 (One-Hot Encoding)。
+  3. **動態特徵與目標選擇**：提供 Target Column 下拉選單，可自由指定任意連續欄位作為預測目標。
+  4. **全套統計指標計算**：自動分割 80% 訓練集與 20% 測試集，即時計算 Train $R^2$、Test $R^2$、Adjusted $R^2$、RMSE、MAE。
+  5. **95% CI 與 PI 區間圖表與殘差診斷**：使用 Chart.js 動態繪製真實值 vs 預測值擬合線、天藍色 95% 信賴區間 (CI) 帶、淡灰色 95% 預測區間 (PI) 帶、殘差散佈圖、特徵係數圖與殘差常態分布直方圖。
+  6. **回歸方程式與係數表**：即時輸出可直接複製之代數回歸方程式與特徵影響力排序表。
+

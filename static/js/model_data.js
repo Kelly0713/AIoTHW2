@@ -879,3 +879,54 @@ const MODEL_METADATA = {
     }
   ]
 };
+
+const STARTUPS_METADATA = {
+  model_name: "50 Startups Multiple Linear Regression (OLS)",
+  features: ["R&D Spend", "Administration", "Marketing Spend", "State_Florida", "State_New York"],
+  feature_names_cn: {
+    "R&D Spend": "研發支出 (R&D Spend)",
+    "Administration": "行政管理 (Administration)",
+    "Marketing Spend": "行銷推廣 (Marketing Spend)",
+    "State": "註冊州別 (State)"
+  },
+  coefficients: [0.806023, -0.027004, 0.026980, 198.7888, -41.8870],
+  intercept: 50125.3438,
+  residual_std: 9439.207,
+  dof: 44,
+  t_crit: 2.0154,
+  r2: 0.95075,
+  adj_r2: 0.94515,
+  rmse: 9120.4,
+  mae: 6842.1,
+  XtX_inv: [
+    [0.532003, 9.324297e-07, -3.590270e-06, -5.475792e-07, -0.0346599, -0.0542324],
+    [9.324297e-07, 2.417103e-11, -1.052275e-11, -6.709110e-12, 5.705196e-08, -1.174825e-07],
+    [-3.590270e-06, -1.052275e-11, 3.061926e-11, 3.141638e-12, -6.576629e-08, 2.535729e-08],
+    [-5.475792e-07, -6.709110e-12, 3.141638e-12, 3.298070e-12, -1.090787e-07, -3.109416e-10],
+    [-0.0346599, 5.705196e-08, -6.576629e-08, -1.090787e-07, 0.1275405, 0.0607052],
+    [-0.0542324, -1.174825e-07, 2.535729e-08, -3.109416e-10, 0.0607052, 0.1189893]
+  ],
+  presets: {
+    unicorn: {
+      name: "🦄 科技創新獨角獸",
+      desc: "高強度研發投入，快速佔領市場，帶來極高獲利回報。",
+      values: { rd: 165000, admin: 80000, mkt: 450000, state: "New York" }
+    },
+    marketing_growth: {
+      name: "📢 市場行銷擴張期",
+      desc: "專注獲客與品牌行銷，研發適度投入，管理成本較高。",
+      values: { rd: 80000, admin: 150000, mkt: 400000, state: "California" }
+    },
+    lean_bootstrapped: {
+      name: "🛠️ 精實自力創業",
+      desc: "極低管理開銷，專注產品研發，行銷以口碑傳播為主。",
+      values: { rd: 100000, admin: 50000, mkt: 50000, state: "Florida" }
+    },
+    industry_average: {
+      name: "🏢 業界常態平均",
+      desc: "各項費用處於 50 家新創的平均歷史水平。",
+      values: { rd: 73721, admin: 121344, mkt: 211025, state: "New York" }
+    }
+  }
+};
+
