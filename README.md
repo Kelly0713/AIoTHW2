@@ -6,7 +6,7 @@
 [![CRISP-DM](https://img.shields.io/badge/Methodology-CRISP--DM-purple.svg)](https://en.wikipedia.org/wiki/Cross-industry_standard_process_for_data_mining)
 [![Kaggle](https://img.shields.io/badge/Kaggle-Playground%20s4e5-blueviolet.svg)](https://www.kaggle.com/competitions/playground-series-s4e5)
 
-**學號**：`7115056029` &nbsp;|&nbsp; **學生**：`kelly`  
+**學號**：`7115056029` &nbsp;|&nbsp; **學生**：`徐愷伶`  
 **資料集**：[Kaggle Playground Series s4e5 (Flood Prediction)](https://www.kaggle.com/competitions/playground-series-s4e5) (20 Features)  
 **分析框架**：CRISP-DM 跨產業資料探勘標準流程
 
